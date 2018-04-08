@@ -1,5 +1,5 @@
 ﻿  Paint.cpp
-c:\users\sbe\desktop\api\practice\paint\paint\paint.cpp(172): warning C4018: '<': signed/unsigned mismatch
-c:\users\sbe\desktop\api\practice\paint\paint\paint.cpp(518): warning C4800: 'UINT': forcing value to bool 'true' or 'false' (performance warning)
+c:\users\sbe\desktop\api\practice\paint\paint\paint.cpp(186): warning C4018: '<': signed/unsigned mismatch
+c:\users\sbe\desktop\api\practice\paint\paint\paint.cpp(536): warning C4800: 'UINT': forcing value to bool 'true' or 'false' (performance warning)
   Paint.vcxproj -> C:\Users\SBE\Desktop\API\Practice\Paint\Debug\Paint.exe
   Paint.vcxproj -> C:\Users\SBE\Desktop\API\Practice\Paint\Debug\Paint.pdb (Full PDB)

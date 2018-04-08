@@ -8,7 +8,7 @@ static HWND hwndToolBox, hwndShape[17], hwndGroup[6], hwndPenSize[5];
 static HWND hwndLable[6], hwndSelectColor[2], hwndColor[20], hwndButton[3], hwndBackground;
 static HWND hwndStatus, hwndPenStyle[4];
 
-//static HWND hwndDrawArea;
+static HWND hwndDrawArea;
 
 static int width = 1250, height = 700;
 
@@ -26,7 +26,7 @@ HWND CreateRadioButton(HWND hWnd, HMENU hmenu) {
 ///////////////////////////////////////////////////////// CREATE TOOLBOX
 void CreateControl(HWND hWnd) {
 	hwndToolBox = CreateWindow(TEXT("static"), NULL, WS_VISIBLE | WS_CHILD | BS_GROUPBOX, 0, 0, 0, 0, hWnd, (HMENU)ID_TOOLBOX, NULL, NULL);
-	//hwndDrawArea = CreateWindow(TEXT("static"), NULL, WS_VISIBLE | WS_CHILD | SS_GRAYFRAME, 0, 0, 0, 0, hWnd, (HMENU)ID_DRAW_AREA, NULL, NULL);
+	hwndDrawArea = CreateWindow(TEXT("static"), NULL, WS_VISIBLE | WS_CHILD | SS_GRAYFRAME, 0, 0, 0, 0, hWnd, (HMENU)ID_DRAW_AREA, NULL, NULL);
 	//Group
 	hwndGroup[0] = CreateGroupBox((HMENU)ID_GROUP1);//hàm ở trên
 	hwndGroup[1] = CreateGroupBox((HMENU)ID_GROUP2);
@@ -116,10 +116,6 @@ void CreateControl(HWND hWnd) {
 ////////////////// parameter 2,3: vị trí left,top
 ////////////////// parameter 4,5: kích thước cửa sổ width,height
 void ShowToolBox() {
-
-
-	//MoveWindow(hwndDrawArea, 0, 125, width, height - 145, TRUE);
-
 	MoveWindow(hwndToolBox, 0, 0, width, 125, TRUE);
 	MoveWindow(hwndGroup[0], 10, 0, 350, 120, TRUE);
 	MoveWindow(hwndGroup[1], 370, 0, 75, 120, TRUE);
@@ -207,8 +203,6 @@ void SetWindowHide(HWND hwnd) {
 
 //////////////////////////////////////// HIDE TOOLBOX 
 void HideToolBox() {
-	//MoveWindow(hwndDrawArea, 0, 0, width, height - 20, TRUE);
-
 	SetWindowHide(hwndToolBox); //Hàm ở trên
 	SetWindowHide(hwndGroup[0]);
 	SetWindowHide(hwndGroup[1]);

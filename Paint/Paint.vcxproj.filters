@@ -48,6 +48,12 @@
     <ClInclude Include="DrawShapeh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SaveBitmap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ReadBitmapFile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

@@ -10,6 +10,11 @@
 #include <commdlg.h>
 #include <stdio.h>
 #include <vector>
+// for export image
+//#include <atlstr.h>
+//#include <atlimage.h>
+#include "SaveBitmap.h"
+#include "ReadBitmapFile.h"
 ////
 #include  "PaintToolBox.h"
 #include "MyColor.h"
@@ -51,13 +56,21 @@ CHOOSECOLOR choosecolor;
 DWORD rgbCurrent;
 static COLORREF acrCustClr[16];
 COLORREF lastChooseColor = NULL;
-
+static HWND hwndMain;
+// Check open file
+static int orderOpen = 0;
+static bool isOpenFile = false;
+static wstring openFilename;
 ///////////////////////////////////////////////////////////////
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+void ExportImage();
+void OpenImage();
+void OpenBitmapByFileName(wstring openFilename);
+void SaveImage();
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -141,6 +154,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	//(WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
 	HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | ES_AUTOHSCROLL | ES_AUTOVSCROLL,
 		0, 0, width, height, nullptr, nullptr, hInstance, nullptr);
+	hwndMain = hWnd;
 	if (!hWnd)
 	{
 		return FALSE;
@@ -165,12 +179,15 @@ void ClickCheckBoxShape(int pos, ShapeMode mode) {
 }
 
 
-
 void ReDrawShapes(HWND hWnd) {
 	MoveWindow(hWnd, currentWindowPosition.left, currentWindowPosition.top, 0, 0, TRUE);
 	MoveWindow(hWnd, currentWindowPosition.left, currentWindowPosition.top, 1250, 700, TRUE);
+
 	for (int i = 0; i < shapes.size(); i++) {
-		shapes[i]->Draw(GetDC(hWnd), isShowToolBox);
+		shapes[i]->Draw(GetDC(hwndDrawArea), isShowToolBox);
+		if (i == orderOpen && isOpenFile) {
+			OpenBitmapByFileName(openFilename);
+		}
 	}
 }
 
@@ -193,7 +210,7 @@ bool MouseUP(HWND hWnd, LPARAM lParam, COLORREF colorBorder) {
 		isMouseDown = false;
 		return false;
 	}
-	hdc = GetDC(hWnd);
+	hdc = GetDC(hwndDrawArea);
 	p[1].x = LOWORD(lParam);
 	p[1].y = HIWORD(lParam);
 	Shape* newShape = new Shape();
@@ -244,7 +261,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		MoveWindow(hwndStatus, 0, height - 20, width, 20, TRUE);
 		if (isShowToolBox) {  //nếu toolbox đc hiển thị thì vẽ các ô màu trong toolbox
 			MoveWindow(hwndToolBox, 0, 0, width, 125, TRUE);
-			//MoveWindow(hwndDrawArea, 0, 125, width, height - 145, TRUE);
+			MoveWindow(hwndDrawArea, 0, 125, width, height - 151, TRUE);
 			setToolBoxColor(hdc, hWnd, hPen, hBrush); //Xem trong file PaintToolBox.h
 			if (lastChooseColor != NULL) {
 				hdc = GetDC(hWnd);
@@ -257,7 +274,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		else {
-			//MoveWindow(hwndDrawArea, 0, 0, width, height - 20, TRUE);
+			MoveWindow(hwndDrawArea, 0, 0, width, height - 26, TRUE);
 			MoveWindow(hwndToolBox, 0, 0, 0, 0, TRUE);
 		}
 		break;
@@ -478,6 +495,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 		case IDM_EXIT:
+			SaveImage();
 			DestroyWindow(hWnd);
 			break;
 			//////
@@ -533,6 +551,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		}
 		case IDM_FILE_NEW: {
+			SaveImage();
 			shapes.clear();
 			while (redoShapes.size() != 0) redoShapes.pop();
 			ReDrawShapes(hWnd);
@@ -540,6 +559,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		case ID_EDIT_REDO:
 		{
+
 			if (lastSizeShape != shapes.size()) {
 				while (redoShapes.size() != 0) redoShapes.pop();
 				break;
@@ -560,6 +580,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			lastSizeShape = shapes.size();
 			redoShapes.push(s);
 			ReDrawShapes(hWnd);
+
+			break;
+		}
+		case ID_FILE_EXPORTIMAGE:
+		{
+			ExportImage();
+			break;
+		}
+		case ID_FILE_OPEN:
+		{
+			OpenImage();
 			break;
 		}
 		default:
@@ -594,7 +625,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		//Status bar
 		WCHAR buffer[128];
 		if (isShowToolBox) {
-			if (y < 125) y = 0;
+			if (y < 125) x = y = 0;
 		}
 		wsprintf(buffer, L"%d x %d px", x, y);
 		SetWindowText(hwndStatus, buffer);
@@ -610,7 +641,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		EndPaint(hWnd, &ps);
 	}
 	break;
-
+	case WM_CLOSE:
+		SaveImage();
+		PostQuitMessage(0);
+		break;
 	case WM_DESTROY:
 		SetClassLong(hWnd, GCL_HBRBACKGROUND, (LONG)
 			GetStockObject(WHITE_BRUSH));
@@ -642,4 +676,103 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 	return (INT_PTR)FALSE;
+}
+
+void SaveImage() {
+	if (shapes.size() <= 0) return;
+	int result = MessageBox(hwndDrawArea, L"Do u wanna save file??", L"Save Image", MB_YESNO | MB_ICONQUESTION);
+	if (result == 6) {
+		ExportImage();
+	}
+}
+
+void ExportImage() {
+	OPENFILENAME ofn;
+	WCHAR szFileName[MAX_PATH] = L"";
+
+	ZeroMemory(&ofn, sizeof(ofn));
+
+	ofn.lStructSize = sizeof(ofn); // SEE NOTE BELOW
+	ofn.hwndOwner = hwndMain;
+	ofn.lpstrFilter = L"Bitmap Files (*.bmp)\0*.bin\0PNG (*.png)\0*.png\0JPEG (*.jpg)\0*.jpg";
+	ofn.lpstrFile = szFileName;
+	ofn.nMaxFile = MAX_PATH;
+	ofn.Flags = OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT;
+	ofn.lpstrDefExt = L"bmp";
+
+	if (GetSaveFileName(&ofn))
+	{
+		wstring ws(szFileName);
+		/////////////////Handle Save Bmp
+		//string fileName(ws.begin(), ws.end());
+		//HDC -> HBitMap
+
+		HDC hDC = GetDC(hwndDrawArea);
+		HDC hTargetDC = CreateCompatibleDC(hDC);
+		RECT rect = { 0 };
+		GetWindowRect(hwndDrawArea, &rect);
+		HBITMAP hBitmap = CreateCompatibleBitmap(hDC, rect.right - rect.left,
+			rect.bottom - rect.top);
+		SelectObject(hTargetDC, hBitmap);
+		//PrintWindow(hwndDrawArea, hTargetDC, PW_CLIENTONLY);
+		BitBlt(hTargetDC, 0, 0, rect.right, rect.bottom, hDC, 0, 0, SRCCOPY);
+		PBITMAPINFO pbmi = CreateBitmapInfoStruct(hwndDrawArea, hBitmap);
+		CreateBMPFile(hwndDrawArea, ws.c_str(), pbmi, hBitmap, hDC);
+		DeleteObject(hBitmap);
+		ReleaseDC(hwndDrawArea, hDC);
+		DeleteDC(hTargetDC);
+	}
+}
+
+void OpenImage() {
+	OPENFILENAME ofn;
+	WCHAR szFilePath[MAX_PATH] = L"";
+	WCHAR szFileTitle[MAX_PATH] = L"";
+
+	ZeroMemory(&ofn, sizeof(ofn));
+
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = hwndMain;
+	ofn.lpstrFilter = L"Bitmap Files (*.bmp)\0*.bin\0PNG (*.png)\0*.png\0JPEG (*.jpg)\0*.jpg";
+	ofn.lpstrFile = szFilePath;
+	ofn.lpstrFileTitle = szFileTitle;
+	ofn.nMaxFile = MAX_PATH;
+	ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+	ofn.lpstrDefExt = L"bmp";
+
+	if (GetOpenFileName(&ofn))
+	{
+		wstring ws(szFilePath);
+		//string fileName(ws.begin(), ws.end());
+		openFilename = ws;
+		isOpenFile = true;
+		orderOpen = shapes.size() - 1;
+		OpenBitmapByFileName(openFilename);
+	}
+}
+
+void OpenBitmapByFileName(wstring openFilename) {
+	HBITMAP       hBitmap, hOldBitmap;
+	HPALETTE      hPalette, hOldPalette;
+	HDC           hMemDC;
+	BITMAP        bm;
+	HDC hDC = GetDC(hwndDrawArea);
+
+	if (LoadBitmapFromBMPFile(openFilename.c_str(), &hBitmap, &hPalette))
+	{
+		GetObject(hBitmap, sizeof(BITMAP), &bm);
+		hMemDC = CreateCompatibleDC(hDC);
+		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hBitmap);
+		hOldPalette = SelectPalette(hDC, hPalette, FALSE);
+		RealizePalette(hDC); //nhan dang mau
+
+							 // copy hMemDC to hdc
+		BitBlt(hDC, 0, 0, bm.bmWidth, bm.bmHeight,
+			hMemDC, 0, 0, SRCCOPY);
+
+		SelectObject(hMemDC, hOldBitmap);
+		DeleteObject(hBitmap);
+		SelectPalette(hDC, hOldPalette, FALSE);
+		DeleteObject(hPalette);
+	}
 }

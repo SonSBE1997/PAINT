@@ -18,6 +18,12 @@ void Shape::Draw(HDC hdc, bool isShowTool) {
 			bottom += 125;
 		}
 	}
+	else {
+		if (isShowTool && top > 125 && bottom > 125) {
+			top -= 125;
+			bottom -= 125;
+		}
+	}
 
 	HPEN hPen = CreatePen(this->penStyle, this->penSize, this->borderColor);
 	HBRUSH hBrush = CreateSolidBrush(this->backgroundColor);

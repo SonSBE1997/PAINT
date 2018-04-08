@@ -71,5 +71,5 @@
 #define ID_PEN_STYLE3 87
 #define ID_PEN_STYLE4 88
 #define ID_CHOOSE_COLOR 89
-//#define ID_DRAW_AREA 90
+#define ID_DRAW_AREA 90
 
